@@ -11,32 +11,14 @@ namespace MemoryDump
         {
             try
             {
-                Process process = GetTargetProcess("TargetExample");
-                Console.WriteLine("ProcessID: {0}", process.Id);
-                Console.WriteLine("ProcessName: {0}", process.ProcessName);
-
-                IntPtr processHandler = process.Handle;
-                IntPtr baseAddress = process.MainModule.BaseAddress;
-                int moduleMemorySize = process.MainModule.ModuleMemorySize;
-                Console.WriteLine("BaseAddress: {0}", baseAddress);
-                Console.WriteLine("ModuleMemorySize: {0}", moduleMemorySize);
-
-                using (StreamWriter writer = new StreamWriter(new FileStream("test.out", FileMode.Create)))
+                Process process = GetTargetProcess("notepad");
+                if (process != null)
                 {
-                    int bufferSize = 4096;
-                    byte[] buffer = new byte[bufferSize];
-                    IntPtr pointer = baseAddress;
-                    IntPtr endPointer = IntPtr.Add(baseAddress, moduleMemorySize);
-                    while (pointer.ToInt64() < endPointer.ToInt64())
+                    Console.WriteLine("ProcessID: {0}", process.Id);
+                    Console.WriteLine("ProcessName: {0}", process.ProcessName);
+                    using (Stream stream = new FileStream("process.out", FileMode.Create))
                     {
-                        IntPtr zero = IntPtr.Zero;
-                        IntPtr readSize = GetReadSize(pointer, endPointer, bufferSize);
-                        if (NativeMethods.ReadProcessMemory(processHandler, baseAddress, buffer, readSize, ref zero))
-                        {
-
-                        }
-
-                        pointer = IntPtr.Add(pointer, bufferSize);
+                        OutputModuleMemory(process, process.MainModule, stream);
                     }
                 }
             }
@@ -46,6 +28,32 @@ namespace MemoryDump
                 Console.WriteLine(e.StackTrace);
             }
         }
+
+        static void OutputModuleMemory(Process process, ProcessModule processModule, Stream stream)
+        {
+            IntPtr processHandler = process.Handle;
+            IntPtr baseAddress = processModule.BaseAddress;
+            int moduleMemorySize = processModule.ModuleMemorySize;
+            Console.WriteLine("BaseAddress: {0}", baseAddress);
+            Console.WriteLine("ModuleMemorySize: {0}", moduleMemorySize);
+
+            int bufferSize = 4096;
+            byte[] buffer = new byte[bufferSize];
+            IntPtr pointer = baseAddress;
+            IntPtr endPointer = IntPtr.Add(baseAddress, moduleMemorySize);
+            while (pointer.ToInt64() < endPointer.ToInt64())
+            {
+                IntPtr readSizeResult = IntPtr.Zero;
+                IntPtr readSize = GetReadSize(pointer, endPointer, bufferSize);
+                if (NativeMethods.ReadProcessMemory(processHandler, pointer, buffer, readSize, ref readSizeResult))
+                {
+                    stream.Write(buffer, 0, readSizeResult.ToInt32());
+                }
+
+                pointer = IntPtr.Add(pointer, bufferSize);
+            }
+        }
+
 
         static IntPtr GetReadSize(IntPtr pointer, IntPtr endPointer, int bufferSize)
         {
