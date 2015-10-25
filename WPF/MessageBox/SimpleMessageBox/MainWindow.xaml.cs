@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace WpfApplication1
+namespace SimpleMessageBox
 {
     /// <summary>
     /// MainWindow.xaml の相互作用ロジック
