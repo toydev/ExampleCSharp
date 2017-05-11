@@ -2,7 +2,7 @@
 
 using OxyPlot;
 
-namespace SimpleGraph1
+namespace LogarithmicGraph
 {
     public class MainWindowViewModel
     {
